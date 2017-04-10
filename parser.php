@@ -92,7 +92,7 @@ class VKPoster
                 if (isset($item->photo))
                 {
                     // Сохраняем картинку локально
-                    $content = file_get_contents($item->photo->src_big);
+                    $content = $this->get_doc($item->photo->src_big);
                     file_put_contents(DIRECTORY . 'image.jpg', $content);
 
                     // Проверяем, была ли уже такая картинка
@@ -155,6 +155,17 @@ class VKPoster
 
             return $output;
         }
+    }
+
+    private function get_doc($url)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSLVERSION,3);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $result;
     }
 
     private function create_watermark($img_file, $filetype, $watermark)

@@ -24,9 +24,17 @@ class vk
             foreach ($params as $key => $param)
                 $p .= ($p == "" ? "" : "&") . $key . "=" . urlencode($param);
 
-        $response = file_get_contents($this->url . $method . "?" . ($p ? $p . "&" : "") . "access_token=" . $this->access_token);
+        $curl_handle = curl_init();
+        curl_setopt($curl_handle, CURLOPT_URL, $this->url . $method . "?" . ($p ? $p . "&" : "") . "access_token=" . $this->access_token);
+        curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
+        $response = curl_exec($curl_handle);
+        curl_close($curl_handle);
 
-        if ($response) return json_decode($response);
+        if ($response)
+        {
+            return json_decode($response);
+        }
 
         return false;
     }

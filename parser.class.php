@@ -96,7 +96,8 @@ class VKparser
     {
         $output = new stdClass();
         // Химичим с текстом, чтобы убрать все теги <br>
-        $output->text = preg_replace('#<br\s*?/?>#i', '\n', $post->text);
+        // Двойные кавычки не для красоты "\n" (!)
+        $output->text = preg_replace('#<br\s*?/?>#i', "\n", $post->text);
         $output->attach = '';
         $output->hash = '';
 
@@ -112,12 +113,11 @@ class VKparser
                     $this->grab_image($item->photo->src_big);
 
                     // Проверяем, была ли уже такая картинка
-                    $output->hash = md5_file(DIRECTORY . 'image.jpg');
-                    $rows = $this->db->querySingle("
-                        SELECT COUNT(*) FROM " . DB_NAME . " WHERE hash LIKE '%$output->hash%'
-                    ");
-
-                    if ($rows !== 0)
+                    if ($hash = $this->check_hash(DIRECTORY . 'image.jpg', true))
+                    {
+                        $output->hash .= $hash;
+                    }
+                    else
                     {
                         return false;
                     }
@@ -165,22 +165,32 @@ class VKparser
                 elseif (isset($item->doc))
                 {
                     // Проверяем, была ли уже такая гифка
-                    $output->hash .= md5_file($item->doc->url);
-                    $rows = $this->db->querySingle("
-                        SELECT COUNT(*) FROM " . DB_NAME . " WHERE hash LIKE '%$output->hash%'
-                    ");
-
-                    if ($rows !== 0)
+                    if ($hash = $this->check_hash($item->doc->url, true))
+                    {
+                        $output->hash .= $hash;
+                    }
+                    else
                     {
                         return false;
                     }
 
-                    $output->attach .= 'doc' . $item->doc->owner_id . '_' . $item->doc->did . ', ';
+                    $output->attach .= 'doc' . $item->doc->owner_id .
+                                       '_' . $item->doc->did . ', ';
                 }
                 elseif (isset($item->video))
                 {
-                    // Если весь пост относится к видео, то расходимся как в море корабли
-                    return false;
+                    // Проверяем, было ли такое видео
+                    if ($hash = $this->check_hash($item->video->vid))
+                    {
+                        $output->hash .= $hash;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+
+                    $output->attach .= 'video' . $item->video->owner_id .
+                                       '_' . $item->video->vid . ', ';
                 }
             }
 
@@ -213,6 +223,31 @@ class VKparser
         ");
 
         return true;
+    }
+
+    /**
+     * Проверка документа на существование в БД. Если есть, значит такой документ уже
+     * был добавлен ранее. Следовательно добавлять его не нужно.
+     *
+     * @param  string строка или путь к файлу
+     * @param  boolean это файл или нет - влияет на используемую хеш-функцию
+     * @return any
+     */
+    private function check_hash($subject, $file = false)
+    {
+        $hash = $file ? md5_file($subject) : md5($subject);
+        $rows = $this->db->querySingle("
+            SELECT COUNT(*) FROM " . DB_NAME . " WHERE hash LIKE '%$hash%'
+        ");
+
+        if ($rows !== 0)
+        {
+            return false;
+        }
+        else
+        {
+            return $hash;
+        }
     }
 
     /**

@@ -10,6 +10,8 @@ class VKparser
     {
         if (!is_file('config.php'))
         {
+            $this->log('Файл с настройками не найден - остановка');
+
             die('Файл с настройками не найден. Вероятно, у вас есть example.config.php. ' .
                 'Заполните его своими данными и переименуйте в config.php.');
         }
@@ -20,7 +22,14 @@ class VKparser
         // Открытие этого файла только cron'ом
         if (ONLY_CRON && (!isset($_SERVER['argv'][0]) && $_SERVER['argv'][0] != '--cron'))
         {
+            $this->log('Скрипт запущен не через CRON - остановка');
+
             exit;
+        }
+
+        // Директория для информационных логов
+        if (!file_exists('logs/')) {
+            mkdir('logs/', 0777, true);
         }
 
         // Отображаем все ошибки
@@ -48,6 +57,8 @@ class VKparser
         // Инициализируем класс работы с API
         $this->vk = new vk(VK_ACCESS_TOKEN);
         $this->owner = '-' . $groups[array_rand($groups)];
+
+        $this->log('Скрипт успешно запущен');
     }
 
     /**
@@ -74,13 +85,19 @@ class VKparser
              || preg_match('/(http:\/\/[^\s]+)/', $post->response[1]->text)
              || preg_match('/\[club(.*)]/', $post->response[1]->text))
             {
+                $this->log('Пост найден, но скорее всего это реклама');
+
                 return false;
             }
+
+            $this->log('Пост найден, начинается обработка');
 
             return $this->process_post($post->response[1]);
         }
         else
         {
+            $this->log('Пост не найден');
+
             return false;
         }
     }
@@ -194,7 +211,13 @@ class VKparser
                 }
             }
 
+            $this->log('Пост успешно обработан');
+
             return $output;
+        }
+        else
+        {
+            $this->log('Не найдено ни одного прикрепления');
         }
     }
 
@@ -222,6 +245,8 @@ class VKparser
             VALUES ('$data->hash', '$this->owner', '$data->text', '$data->attach', '$time')
         ");
 
+        $this->log('Пост успешно отправлен');
+
         return true;
     }
 
@@ -242,6 +267,8 @@ class VKparser
 
         if ($rows !== 0)
         {
+            $this->log('Такой документ уже был добавлен ранее');
+
             return false;
         }
         else
@@ -276,6 +303,16 @@ class VKparser
 
         fwrite($fp, $raw);
         fclose($fp);
+    }
+
+    /**
+     * Логгирование с записью в файл
+     *
+     * @param  string сообщение для записи в лог
+     */
+    private function log($message)
+    {
+        file_put_contents('./logs/' . date('d-m-Y') . '.txt', '[' . date('d-m-Y h:i:s') . '] ' . $message . PHP_EOL, FILE_APPEND);
     }
 
     /**
@@ -339,6 +376,8 @@ class VKparser
 
         imagedestroy($r);
         imagedestroy($img);
+
+        $this->log('Водяной знак успешно добавлен');
     }
 }
 

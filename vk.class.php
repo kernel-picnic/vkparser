@@ -20,14 +20,18 @@ class vk
      */
     public function method($method, $params = null)
     {
-        $p = "";
+        $p = '';
 
         if ($params && is_array($params))
+        {
             foreach ($params as $key => $param)
-                $p .= ($p == "" ? "" : "&") . $key . "=" . urlencode($param);
+            {
+                $p .= ($p == '' ? '' : '&') . $key . '=' . urlencode($param);
+            }
+        }
 
         $curl_handle = curl_init();
-        curl_setopt($curl_handle, CURLOPT_URL, $this->url . $method . "?" . ($p ? $p . "&" : "") . "access_token=" . $this->access_token . "&v=" . $this->api_version);
+        curl_setopt($curl_handle, CURLOPT_URL, $this->url . $method . '?' . ($p ? $p . '&' : '') . 'access_token=' . $this->access_token . '&v=' . $this->api_version);
         curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
         $response = curl_exec($curl_handle);

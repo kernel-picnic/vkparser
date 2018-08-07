@@ -2,10 +2,13 @@
 
 define('VK_GROUP_ID', ''); // ID группы ВК
 
-// ACCESS TOKEN можно получить по ссылке
-// CLIENT_ID - ID приложения
-// oauth.vk.com/authorize?client_id=[CLIENT_ID]&scope=photos,wall,offline&redirect_uri=http://oauth.vk.com/blank.html&display=page&response_type=token
+// Инструкция по получению ACCESS TOKEN
+//
+// Берём эту ссылку и подставляем вместо [CLIENT_ID] ID вашего приложения:
+// https://oauth.vk.com/authorize?client_id=[CLIENT_ID]&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos,wall,offline&response_type=token&v=5.80
+// Учтите, что приложение должно быть включено
 define('VK_ACCESS_TOKEN', '');
+define('VK_API_VERSION', '5.80'); // Версия API
 
 define('DIRECTORY', dirname(__FILE__) . '/'); // Директория из-под которой работаем
 define('DIRECTORY_WATERMARK', DIRECTORY . 'watermark.png'); // Водяной знак (лого группы)

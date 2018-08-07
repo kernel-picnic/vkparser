@@ -3,12 +3,14 @@
 class vk
 {
     private $access_token;
+    private $api_version;
     private $url = 'https://api.vk.com/method/';
 
     // Конструктор
-    public function __construct($access_token)
+    public function __construct($access_token, $api_version)
     {
         $this->access_token = $access_token;
+        $this->api_version = $api_version;
     }
 
     /**
@@ -25,7 +27,7 @@ class vk
                 $p .= ($p == "" ? "" : "&") . $key . "=" . urlencode($param);
 
         $curl_handle = curl_init();
-        curl_setopt($curl_handle, CURLOPT_URL, $this->url . $method . "?" . ($p ? $p . "&" : "") . "access_token=" . $this->access_token);
+        curl_setopt($curl_handle, CURLOPT_URL, $this->url . $method . "?" . ($p ? $p . "&" : "") . "access_token=" . $this->access_token . "&v=" . $this->api_version);
         curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
         $response = curl_exec($curl_handle);

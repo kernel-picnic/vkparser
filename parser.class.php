@@ -19,6 +19,27 @@ class VKparser
         include 'config.php';   // Конфигурация скрипта
         include 'vk.class.php'; // Класс для взаимодействия с API вконтакте
 
+        if (!VK_ACCESS_TOKEN)
+        {
+            $this->log('Не указан "VK_ACCESS_TOKEN" в настройках');
+
+            exit;
+        }
+
+        if (!VK_API_VERSION)
+        {
+            $this->log('Не указан "VK_API_VERSION" в настройках');
+
+            exit;
+        }
+
+        if (!VK_GROUP_ID)
+        {
+            $this->log('Не указан "VK_GROUP_ID" в настройках');
+
+            exit;
+        }
+
         // Открытие этого файла только cron'ом
         if (ONLY_CRON && (!isset($_SERVER['argv'][0]) && $_SERVER['argv'][0] != '--cron'))
         {
@@ -55,7 +76,7 @@ class VKparser
         ");
 
         // Инициализируем класс работы с API
-        $this->vk = new vk(VK_ACCESS_TOKEN);
+        $this->vk = new vk(VK_ACCESS_TOKEN, VK_API_VERSION);
         $this->owner = '-' . $groups[array_rand($groups)];
 
         $this->log('Скрипт успешно запущен');
@@ -77,13 +98,13 @@ class VKparser
             'count'    => '1'
         ));
 
-        if (isset($post->response[1]))
+        if ($post = $post->response->items[0])
         {
             // Если тип поста copy или в тексте есть ссылки, то
             // скорее всего это рекламный пост - постить не будем
-            if ($post->response[1]->post_type === 'copy'
-             || preg_match('/(http:\/\/[^\s]+)/', $post->response[1]->text)
-             || preg_match('/\[club(.*)]/', $post->response[1]->text))
+            if ($post->post_type === 'copy'
+             || preg_match('/(http:\/\/[^\s]+)/', $post->text)
+             || preg_match('/\[club(.*)]/', $post->text))
             {
                 $this->log('Пост найден, но скорее всего это реклама');
 
@@ -92,7 +113,7 @@ class VKparser
 
             $this->log('Пост найден, начинается обработка');
 
-            return $this->process_post($post->response[1]);
+            return $this->process_post($post);
         }
         else
         {
@@ -126,8 +147,8 @@ class VKparser
             {
                 if (isset($item->photo))
                 {
-                    // Сохраняем картинку локально
-                    $this->grab_image($item->photo->src_big);
+                    // Сохраняем картинку локально, выбирая самую большую
+                    $this->grab_image(end($item->photo->sizes)->url);
 
                     // Проверяем, была ли уже такая картинка
                     if ($hash = $this->check_hash(DIRECTORY . 'image.jpg', true))
@@ -172,12 +193,12 @@ class VKparser
                     ));
 
                     $output->attach .= 'photo' . $saved_photo->response[0]->owner_id .
-                                       '_' . $saved_photo->response[0]->pid . ', ';
+                                       '_' . $saved_photo->response[0]->id . ', ';
                 }
                 elseif (isset($item->audio))
                 {
                     $output->attach .= 'audio' . $item->audio->owner_id .
-                                       '_' . $item->audio->aid . ', ';
+                                       '_' . $item->audio->id . ', ';
                 }
                 elseif (isset($item->doc))
                 {
@@ -192,12 +213,12 @@ class VKparser
                     }
 
                     $output->attach .= 'doc' . $item->doc->owner_id .
-                                       '_' . $item->doc->did . ', ';
+                                       '_' . $item->doc->id . ', ';
                 }
                 elseif (isset($item->video))
                 {
                     // Проверяем, было ли такое видео
-                    if ($hash = $this->check_hash($item->video->vid))
+                    if ($hash = $this->check_hash($item->video->id))
                     {
                         $output->hash .= $hash;
                     }
@@ -207,7 +228,7 @@ class VKparser
                     }
 
                     $output->attach .= 'video' . $item->video->owner_id .
-                                       '_' . $item->video->vid . ', ';
+                                       '_' . $item->video->id . ', ';
                 }
             }
 
@@ -239,15 +260,23 @@ class VKparser
             'publish_date' => $time
         ));
 
-        // Сохраняем в БД
-        $this->db->exec("
-            INSERT INTO " . DB_NAME . " ('hash', 'group', 'message', 'attachment', 'date') 
-            VALUES ('$data->hash', '$this->owner', '$data->text', '$data->attach', '$time')
-        ");
+        if (!isset($response->error)) {
+            // Сохраняем в БД
+            $this->db->exec("
+                INSERT INTO " . DB_NAME . " ('hash', 'group', 'message', 'attachment', 'date') 
+                VALUES ('$data->hash', '$this->owner', '$data->text', '$data->attach', '$time')
+            ");
 
-        $this->log('Пост успешно отправлен');
+            $this->log('Пост успешно отправлен');
 
-        return true;
+            return true;
+        } else {
+            $this->log('Ошибка отправки поста: ' . $response->error->error_msg);
+
+            return false;
+        }
+
+
     }
 
     /**
@@ -285,7 +314,7 @@ class VKparser
      */
     private function grab_image($url)
     {
-        $ch = curl_init ($url);
+        $ch = curl_init($url);
 
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

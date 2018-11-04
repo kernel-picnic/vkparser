@@ -161,7 +161,8 @@ class VKparser
                     }
 
                     // Накладываем водяной знак, если разрешено в настройках
-                    if (USE_WATERMARK) {
+                    if (WATERMARK_ACTIVE)
+                    {
                         $this->apply_watermark(DIRECTORY . 'image.jpg');
                     }
 
@@ -357,10 +358,29 @@ class VKparser
         $image   = GetImageSize($img_file);
         $xImg    = $image[0];
         $yImg    = $image[1];
+
         // Размеры водяного знака
         $offset  = GetImageSize($watermark);
-        $xOffset = $image[0]/2 - $offset[0]/2;
-        $yOffset = $image[1]/3.5 - $offset[1]/2;
+
+        // Позиционирование по горизонтали
+        if (WATERMARK_X)
+        {
+            $xOffset = $image[0] * (WATERMARK_X / 100) - $offset[0]/2;
+        }
+        else
+        {
+            $xOffset = $image[0]/2 - $offset[0]/2;
+        }
+
+        // Позиционирование по вертикали
+        if (WATERMARK_Y)
+        {
+            $yOffset = $image[1] * (WATERMARK_Y / 100) - $offset[1]/2;
+        }
+        else
+        {
+            $yOffset = $image[1]/2 - $offset[1]/2;
+        }
 
         // Формат картинки
         switch ($image[2])

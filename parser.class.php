@@ -78,6 +78,7 @@ class VKparser
         // Инициализируем класс работы с API
         $this->vk = new vk(VK_ACCESS_TOKEN, VK_API_VERSION);
         $this->owner = '-' . $groups[array_rand($groups)];
+        $this->blacklist = $blacklist;
 
         $this->log('Скрипт успешно запущен');
     }
@@ -100,18 +101,28 @@ class VKparser
 
         if ($post = $post->response->items[0])
         {
+            $this->log('Пост найден');
+
             // Если тип поста copy или в тексте есть ссылки, то
             // скорее всего это рекламный пост - постить не будем
             if ($post->post_type === 'copy'
              || preg_match('/(http:\/\/[^\s]+)/', $post->text)
              || preg_match('/\[club(.*)]/', $post->text))
             {
-                $this->log('Пост найден, но скорее всего это реклама');
+                $this->log('Имеется подозрение на рекламу — пропуск');
 
                 return false;
             }
 
-            $this->log('Пост найден, начинается обработка');
+            foreach($this->blacklist as $word) {
+                if (strpos(mb_strtolower($post->text, 'UTF-8'), mb_strtolower($word, 'UTF-8')) !== false) {
+                    $this->log('В тексте поста найдено слово из чёрного списка ("' . $word . '") — пропуск');
+
+                    return false;
+                }
+            }
+
+            $this->log('Начинается обработка');
 
             return $this->process_post($post);
         }

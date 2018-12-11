@@ -114,11 +114,13 @@ class VKparser
                 return false;
             }
 
-            foreach($this->blacklist as $word) {
-                if (strpos(mb_strtolower($post->text, 'UTF-8'), mb_strtolower($word, 'UTF-8')) !== false) {
-                    $this->log('В тексте поста найдено слово из чёрного списка ("' . $word . '") — пропуск');
+            if (count($this->blacklist) > 0 && trim($this->blacklist[0])) {
+                foreach($this->blacklist as $word) {
+                    if (strpos(mb_strtolower($post->text, 'UTF-8'), mb_strtolower($word, 'UTF-8')) !== false) {
+                        $this->log('В тексте поста найдено слово из чёрного списка ("' . $word . '") — пропуск');
 
-                    return false;
+                        return false;
+                    }
                 }
             }
 

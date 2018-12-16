@@ -1,5 +1,5 @@
 config.php
 *.db
 *.log
-
+logs/
 image.jpg

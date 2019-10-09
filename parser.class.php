@@ -360,7 +360,7 @@ class VKparser
      * Наложение водяного знака на изображение
      *
      * @param  $img_file используемое изображение
-     * @param  $filetype нужный ным формат на выходе
+     * @param  $filetype получаемое расширение на выходе
      * @param  $watermark изображение водяного знака
      */
     private function apply_watermark($img_file, $filetype = 'jpg', $watermark = DIRECTORY_WATERMARK)

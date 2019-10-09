@@ -27,6 +27,8 @@ define('WATERMARK_Y', false); // По вертикали
 
 define('ONLY_CRON', false); // Разрешать запуск скрипта не только через CRONTAB
 
+define('ADD_COPYRIGHT', false); // Указание источника (защита контента Немезида https://vk.com/@adminsclub-citation)
+
 // Группы, из которых берутся записи
 $groups = array(
     '',

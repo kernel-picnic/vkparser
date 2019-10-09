@@ -152,6 +152,15 @@ class VKparser
         $output->attach = '';
         $output->hash = '';
 
+        if (ADD_COPYRIGHT)
+        {
+            $output->copyright = 'https://vk.com/wall' . $post->owner_id . '_' . $post->id;
+        }
+        else
+        {
+            $output->copyright = false;
+        }
+
         // Проверка на наличие прикреплений
         // Собираем их все в одну переменную
         if (isset($post->attachments))
@@ -271,7 +280,8 @@ class VKparser
             'friends_only' => 0,
             'message'      => $data->text,
             'attachments'  => $data->attach,
-            'publish_date' => $time
+            'publish_date' => $time,
+            'copyright'    => $data->copyright
         ));
 
         if (!isset($response->error)) {

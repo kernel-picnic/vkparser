@@ -257,8 +257,8 @@ class VKparser
     }
 
     /**
-     * Отправка полностью готового поста ВК в группу по указанному VK_GROUP_ID 
-     * 
+     * Отправка полностью готового поста ВК в группу по указанному VK_GROUP_ID
+     *
      * @param  array $data - массив с данными о посте
      */
     public function send_post($data)
@@ -277,7 +277,7 @@ class VKparser
         if (!isset($response->error)) {
             // Сохраняем в БД
             $this->db->exec("
-                INSERT INTO " . DB_NAME . " ('hash', 'group', 'message', 'attachment', 'date') 
+                INSERT INTO " . DB_NAME . " ('hash', 'group', 'message', 'attachment', 'date')
                 VALUES ('$data->hash', '$this->owner', '$data->text', '$data->attach', '$time')
             ");
 
@@ -289,8 +289,6 @@ class VKparser
 
             return false;
         }
-
-
     }
 
     /**

@@ -6,10 +6,8 @@
  */
 class VKparser
 {
-    function __construct()
-    {
-        if (!is_file('config.php'))
-        {
+    function __construct() {
+        if (!is_file('config.php')) {
             $this->log('Файл с настройками не найден - остановка');
 
             die('Файл с настройками не найден. Вероятно, у вас есть example.config.php. ' .
@@ -19,30 +17,26 @@ class VKparser
         include 'config.php';   // Конфигурация скрипта
         include 'vk.class.php'; // Класс для взаимодействия с API вконтакте
 
-        if (!VK_ACCESS_TOKEN)
-        {
+        if (!VK_ACCESS_TOKEN) {
             $this->log('Не указан "VK_ACCESS_TOKEN" в настройках');
 
             exit;
         }
 
-        if (!VK_API_VERSION)
-        {
+        if (!VK_API_VERSION) {
             $this->log('Не указан "VK_API_VERSION" в настройках');
 
             exit;
         }
 
-        if (!VK_GROUP_ID)
-        {
+        if (!VK_GROUP_ID) {
             $this->log('Не указан "VK_GROUP_ID" в настройках');
 
             exit;
         }
 
         // Открытие этого файла только cron'ом
-        if (ONLY_CRON && (!isset($_SERVER['argv'][0]) && $_SERVER['argv'][0] != '--cron'))
-        {
+        if (ONLY_CRON && (!isset($_SERVER['argv'][0]) && $_SERVER['argv'][0] != '--cron')) {
             $this->log('Скрипт запущен не через CRON - остановка');
 
             exit;
@@ -89,8 +83,7 @@ class VKparser
      * @return array возвращаем всю обработанную информацию о посте или же
      * false, если нечего не было найдено или произошла ошибка
      */
-    public function get_post()
-    {
+    public function get_post() {
         $post = $this->vk->method('wall.get', array(
             //'captcha_sid' => '601516643537',
             //'captcha_key' => 'dqnn2h',
@@ -99,8 +92,7 @@ class VKparser
             'count'    => '1'
         ));
 
-        if ($post = $post->response->items[0])
-        {
+        if ($post = $post->response->items[0]) {
             $this->log('Пост найден');
 
             // Если тип поста copy или в тексте есть ссылки, то
@@ -127,9 +119,7 @@ class VKparser
             $this->log('Начинается обработка');
 
             return $this->process_post($post);
-        }
-        else
-        {
+        } else {
             $this->log('Пост не найден');
 
             return false;
@@ -143,8 +133,7 @@ class VKparser
      * @param  $post необработанный пост
      * @return array обработанный пост
      */
-    private function process_post($post)
-    {
+    private function process_post($post) {
         $output = new stdClass();
         // Химичим с текстом, чтобы убрать все теги <br>
         // Двойные кавычки не для красоты "\n" (!)
@@ -152,39 +141,29 @@ class VKparser
         $output->attach = '';
         $output->hash = '';
 
-        if (ADD_COPYRIGHT)
-        {
+        if (ADD_COPYRIGHT) {
             $output->copyright = 'https://vk.com/wall' . $post->owner_id . '_' . $post->id;
-        }
-        else
-        {
+        } else {
             $output->copyright = false;
         }
 
         // Проверка на наличие прикреплений
         // Собираем их все в одну переменную
-        if (isset($post->attachments))
-        {
-            foreach ($post->attachments as $item)
-            {
-                if (isset($item->photo))
-                {
+        if (isset($post->attachments)) {
+            foreach ($post->attachments as $item) {
+                if (isset($item->photo)) {
                     // Сохраняем картинку локально, выбирая самую большую
                     $this->grab_image(end($item->photo->sizes)->url);
 
                     // Проверяем, была ли уже такая картинка
-                    if ($hash = $this->check_hash(DIRECTORY . 'image.jpg', true))
-                    {
+                    if ($hash = $this->check_hash(DIRECTORY . 'image.jpg', true)) {
                         $output->hash .= $hash;
-                    }
-                    else
-                    {
+                    } else {
                         return false;
                     }
 
                     // Накладываем водяной знак, если разрешено в настройках
-                    if (WATERMARK_ACTIVE)
-                    {
+                    if (WATERMARK_ACTIVE) {
                         $this->apply_watermark(DIRECTORY . 'image.jpg');
                     }
 
@@ -217,36 +196,24 @@ class VKparser
 
                     $output->attach .= 'photo' . $saved_photo->response[0]->owner_id .
                                        '_' . $saved_photo->response[0]->id . ', ';
-                }
-                elseif (isset($item->audio))
-                {
+                } elseif (isset($item->audio)) {
                     $output->attach .= 'audio' . $item->audio->owner_id .
                                        '_' . $item->audio->id . ', ';
-                }
-                elseif (isset($item->doc))
-                {
+                } elseif (isset($item->doc)) {
                     // Проверяем, была ли уже такая гифка
-                    if ($hash = $this->check_hash($item->doc->url, true))
-                    {
+                    if ($hash = $this->check_hash($item->doc->url, true)) {
                         $output->hash .= $hash;
-                    }
-                    else
-                    {
+                    } else {
                         return false;
                     }
 
                     $output->attach .= 'doc' . $item->doc->owner_id .
                                        '_' . $item->doc->id . ', ';
-                }
-                elseif (isset($item->video))
-                {
+                } elseif (isset($item->video)) {
                     // Проверяем, было ли такое видео
-                    if ($hash = $this->check_hash($item->video->id))
-                    {
+                    if ($hash = $this->check_hash($item->video->id)) {
                         $output->hash .= $hash;
-                    }
-                    else
-                    {
+                    } else {
                         return false;
                     }
 
@@ -258,9 +225,7 @@ class VKparser
             $this->log('Пост успешно обработан');
 
             return $output;
-        }
-        else
-        {
+        } else {
             $this->log('Не найдено ни одного прикрепления');
         }
     }
@@ -270,8 +235,7 @@ class VKparser
      *
      * @param  array $data - массив с данными о посте
      */
-    public function send_post($data)
-    {
+    public function send_post($data) {
         $time = time() + (rand(1, 30) * 60);
 
         $response = $this->vk->method('wall.post', array(
@@ -309,21 +273,17 @@ class VKparser
      * @param  boolean это файл или нет - влияет на используемую хеш-функцию
      * @return any
      */
-    private function check_hash($subject, $file = false)
-    {
+    private function check_hash($subject, $file = false) {
         $hash = $file ? md5_file($subject) : md5($subject);
         $rows = $this->db->querySingle("
             SELECT COUNT(*) FROM " . DB_NAME . " WHERE hash LIKE '%$hash%'
         ");
 
-        if ($rows !== 0)
-        {
+        if ($rows !== 0) {
             $this->log('Такой документ уже был добавлен ранее — пропуск');
 
             return false;
-        }
-        else
-        {
+        } else {
             return $hash;
         }
     }
@@ -334,8 +294,7 @@ class VKparser
      * @param  $url URL документа
      * @return any полученный документ
      */
-    private function grab_image($url)
-    {
+    private function grab_image($url) {
         $ch = curl_init($url);
 
         curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -345,8 +304,7 @@ class VKparser
         $raw = curl_exec($ch);
         curl_close($ch);
 
-        if (file_exists(DIRECTORY . 'image.jpg'))
-        {
+        if (file_exists(DIRECTORY . 'image.jpg')) {
             unlink(DIRECTORY . 'image.jpg');
         }
 
@@ -361,8 +319,7 @@ class VKparser
      *
      * @param  string сообщение для записи в лог
      */
-    public function log($message)
-    {
+    public function log($message) {
         file_put_contents('./logs/' . date('d-m-Y') . '.txt', '[' . date('d-m-Y h:i:s') . '] ' . $message . PHP_EOL, FILE_APPEND);
     }
 
@@ -373,8 +330,7 @@ class VKparser
      * @param  $filetype получаемое расширение на выходе
      * @param  $watermark изображение водяного знака
      */
-    private function apply_watermark($img_file, $filetype = 'jpg', $watermark = DIRECTORY_WATERMARK)
-    {
+    private function apply_watermark($img_file, $filetype = 'jpg', $watermark = DIRECTORY_WATERMARK) {
         // Размеры картинки
         $image   = GetImageSize($img_file);
         $xImg    = $image[0];
@@ -384,37 +340,32 @@ class VKparser
         $offset  = GetImageSize($watermark);
 
         // Позиционирование по горизонтали
-        if (WATERMARK_X)
-        {
+        if (WATERMARK_X) {
             $xOffset = $image[0] * (WATERMARK_X / 100) - $offset[0]/2;
-        }
-        else
-        {
+        } else {
             $xOffset = $image[0]/2 - $offset[0]/2;
         }
 
         // Позиционирование по вертикали
-        if (WATERMARK_Y)
-        {
+        if (WATERMARK_Y) {
             $yOffset = $image[1] * (WATERMARK_Y / 100) - $offset[1]/2;
-        }
-        else
-        {
+        } else {
             $yOffset = $image[1]/2 - $offset[1]/2;
         }
 
         // Формат картинки
-        switch ($image[2])
-        {
+        switch ($image[2]) {
             case 1:
                 $img = imagecreatefromgif($img_file);
-            break;
+                break;
+
             case 2:
                 $img = imagecreatefromjpeg($img_file);
-            break;
+                break;
+
             case 3:
                 $img = imagecreatefrompng($img_file);
-            break;
+                break;
         }
 
         $r     = imagecreatefrompng($watermark);
@@ -429,19 +380,20 @@ class VKparser
         imagesavealpha($r,1);
         imagecopyresampled($img, $r, $xDest, $yDest, 0, 0, $x, $y, $x, $y);
 
-        switch ($filetype)
-        {
+        switch ($filetype) {
             case 'jpg':
             case 'jpeg':
                 imagejpeg($img, $img_file, 100);
                 imagejpeg($img, $img_file, 100);
-            break;
+                break;
+
             case 'gif':
                 imagegif($img, $img_file);
-            break;
+                break;
+
             case 'png':
                 imagepng($img, $img_file);
-            break;
+                break;
         }
 
         imagedestroy($r);

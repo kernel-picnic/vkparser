@@ -94,7 +94,7 @@ class VKparser
         $post = $this->vk->method('wall.get', array(
             //'captcha_sid' => '601516643537',
             //'captcha_key' => 'dqnn2h',
-            'owner_id' => $this->owner, // Рандомная группа из списка
+            'owner_id' => $this->owner, // Случайная группа из списка
             'offset'   => rand(SEARCH_RANGE_START, SEARCH_RANGE_END), // Поиск поста в определённом диапазоне
             'count'    => '1'
         ));
@@ -318,7 +318,7 @@ class VKparser
 
         if ($rows !== 0)
         {
-            $this->log('Такой документ уже был добавлен ранее');
+            $this->log('Такой документ уже был добавлен ранее — пропуск');
 
             return false;
         }
@@ -361,7 +361,7 @@ class VKparser
      *
      * @param  string сообщение для записи в лог
      */
-    private function log($message)
+    public function log($message)
     {
         file_put_contents('./logs/' . date('d-m-Y') . '.txt', '[' . date('d-m-Y h:i:s') . '] ' . $message . PHP_EOL, FILE_APPEND);
     }
@@ -454,11 +454,15 @@ class VKparser
 $vkparser = new VKparser();
 
 $post_info = '';
-while (!$post_info)
-{
-    $post_info = $vkparser->get_post();
-    // Пауза между получением нового поста
-    sleep(5);
-}
 
-$vkparser->send_post($post_info);
+do {
+    $post_info = $vkparser->get_post();
+
+    sleep(5); // Пауза между получением нового поста
+} while (!$post_info && !STOP_SEARCH_AFTER_FAILURE);
+
+if ($post_info) {
+    $vkparser->send_post($post_info);
+} else {
+    $vkparser->log('Пост не найден, включен параметр "STOP_SEARCH_AFTER_FAILURE" - завершение работы парсера');
+}

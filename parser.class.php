@@ -95,7 +95,7 @@ class VKparser
             //'captcha_sid' => '601516643537',
             //'captcha_key' => 'dqnn2h',
             'owner_id' => $this->owner, // Рандомная группа из списка
-            'offset'   => rand(1, 5),   // Один из 5 последних постов
+            'offset'   => rand(SEARCH_RANGE_START, SEARCH_RANGE_END), // Поиск поста в определённом диапазоне
             'count'    => '1'
         ));
 

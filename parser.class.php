@@ -92,8 +92,10 @@ class VKparser
             'count'    => '1'
         ));
 
-        if ($post = $post->response->items[0]) {
+        if ($post->response->items) {
             $this->log('Пост найден');
+
+            $post = $post->response->items[0];
 
             // Если тип поста copy или в тексте есть ссылки, то
             // скорее всего это рекламный пост - постить не будем
